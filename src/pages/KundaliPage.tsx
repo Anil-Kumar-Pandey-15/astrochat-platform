@@ -22,19 +22,8 @@ import {
 import { FileText, Download, Save, Award, Activity, Calendar, Compass, ShieldAlert, Sparkles, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CITIES = [
-  { name: "Delhi", lat: 28.6139, lng: 77.2090 },
-  { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
-  { name: "Bangalore", lat: 12.9716, lng: 77.5946 },
-  { name: "Chennai", lat: 13.0827, lng: 80.2707 },
-  { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
-  { name: "Pune", lat: 18.5204, lng: 73.8567 },
-  { name: "Hyderabad", lat: 17.3850, lng: 78.4867 },
-  { name: "Ahmedabad", lat: 23.0225, lng: 72.5714 },
-  { name: "Jaipur", lat: 26.9124, lng: 75.7873 },
-  { name: "Lucknow", lat: 26.8467, lng: 80.9462 },
-  { name: "Patna", lat: 25.5941, lng: 85.1376 }
-];
+import { INDIAN_CITIES } from '@/data/citiesData';
+import { Search } from 'lucide-react';
 
 const VARGA_CHARTS = [
   { id: 1, name: "D1 - Lagna (लग्न)", nameEn: "D1 - Lagna Chart" },
@@ -65,6 +54,9 @@ export const KundaliPage: React.FC = () => {
     birthPlace: 'Delhi'
   });
 
+  const [citySearch, setCitySearch] = useState("Delhi");
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+
   const [generatedData, setGeneratedData] = useState<any>(null);
   const [selectedVarga2, setSelectedVarga2] = useState<number>(9); // Default D9 Navamsa
 
@@ -83,7 +75,7 @@ export const KundaliPage: React.FC = () => {
       return;
     }
 
-    const city = CITIES.find(c => c.name === formData.birthPlace) || CITIES[0];
+    const city = INDIAN_CITIES.find(c => c.name === formData.birthPlace) || INDIAN_CITIES[0];
     const bDate = new Date(formData.birthDate);
     
     // Generate planetary positions (D1)
@@ -280,23 +272,60 @@ export const KundaliPage: React.FC = () => {
                     />
                   </div>
 
-                  <div>
+                  <div className="relative z-50">
                     <label className="text-sm font-medium mb-1 block">
                       {language === 'en' ? 'Birth Place (City)' : 'जन्म स्थान (शहर)'}
                     </label>
-                    <Select 
-                      value={formData.birthPlace} 
-                      onValueChange={(val) => handleSelectChange('birthPlace', val)}
-                    >
-                      <SelectTrigger className="bg-black/35 border-purple-900/40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CITIES.map(c => (
-                          <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <div className="flex items-center bg-black/35 border border-purple-900/40 rounded-md px-3 py-2">
+                        <Search className="h-4 w-4 text-purple-400 mr-2 shrink-0" />
+                        <Input 
+                          type="text"
+                          value={citySearch}
+                          onChange={(e) => {
+                            setCitySearch(e.target.value);
+                            setShowCityDropdown(true);
+                          }}
+                          onFocus={() => setShowCityDropdown(true)}
+                          onBlur={() => {
+                            setTimeout(() => setShowCityDropdown(false), 250);
+                          }}
+                          placeholder={language === 'en' ? "Search city..." : "शहर खोजें..."}
+                          className="bg-transparent border-0 outline-none p-0 text-sm w-full focus-visible:ring-0 focus-visible:ring-offset-0 h-5 text-slate-100"
+                        />
+                      </div>
+                      {showCityDropdown && (
+                        <div className="absolute left-0 right-0 mt-1 bg-purple-950 border border-purple-900/60 rounded-md shadow-lg max-h-[180px] overflow-y-auto z-50 divide-y divide-purple-900/20">
+                          {INDIAN_CITIES.filter(city => 
+                            city.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+                            city.state.toLowerCase().includes(citySearch.toLowerCase())
+                          ).length > 0 ? (
+                            INDIAN_CITIES.filter(city => 
+                              city.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+                              city.state.toLowerCase().includes(citySearch.toLowerCase())
+                            ).map(city => (
+                              <button
+                                type="button"
+                                key={`${city.name}-${city.state}`}
+                                onClick={() => {
+                                  handleSelectChange('birthPlace', city.name);
+                                  setCitySearch(city.name);
+                                  setShowCityDropdown(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-purple-900/40 text-slate-200 transition-colors flex justify-between items-center"
+                              >
+                                <span className="font-medium">{city.name}</span>
+                                <span className="text-[10px] text-purple-400 font-semibold">{city.state}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-2 text-xs text-muted-foreground text-center">
+                              {language === 'en' ? "No cities found" : "कोई शहर नहीं मिला"}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">

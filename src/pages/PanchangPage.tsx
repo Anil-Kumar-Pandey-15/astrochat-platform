@@ -22,24 +22,15 @@ import {
 } from '@/lib/astroEngine';
 import { toast } from 'sonner';
 
-const CITIES = [
-  { name: "Delhi", lat: 28.6139, lng: 77.2090 },
-  { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
-  { name: "Bangalore", lat: 12.9716, lng: 77.5946 },
-  { name: "Chennai", lat: 13.0827, lng: 80.2707 },
-  { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
-  { name: "Pune", lat: 18.5204, lng: 73.8567 },
-  { name: "Hyderabad", lat: 17.3850, lng: 78.4867 },
-  { name: "Ahmedabad", lat: 23.0225, lng: 72.5714 },
-  { name: "Jaipur", lat: 26.9124, lng: 75.7873 },
-  { name: "Lucknow", lat: 26.8467, lng: 80.9462 },
-  { name: "Patna", lat: 25.5941, lng: 85.1376 }
-];
+import { INDIAN_CITIES } from '@/data/citiesData';
+import { Search } from "lucide-react";
 
 const PanchangPage = () => {
   const { t, language } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedCity, setSelectedCity] = useState<string>("Delhi");
+  const [citySearch, setCitySearch] = useState("Delhi");
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
   
   const [panchang, setPanchang] = useState<any>(null);
   const [muhurats, setMuhurats] = useState<any[]>([]);
@@ -62,7 +53,7 @@ const PanchangPage = () => {
     const isTodayVal = isToday(selectedDate);
     
     const runCalculation = () => {
-      const cityObj = CITIES.find(c => c.name === selectedCity) || CITIES[0];
+      const cityObj = INDIAN_CITIES.find(c => c.name === selectedCity) || INDIAN_CITIES[0];
       const now = new Date();
       
       if (isTodayVal) {
@@ -139,21 +130,99 @@ const PanchangPage = () => {
   const getFestivals = () => {
     const m = new Date(selectedDate).getMonth();
     const festivalsList = [
-      ["स्वामी विवेकानंद जयंती", "मकर संक्रांति", "लोहड़ी", "पौष पुत्रदा एकादशी"], // Jan (0)
-      ["वसन्त पंचमी", "रथ सप्तमी", "जया एकादशी", "महाशिवरात्रि (संधि)"], // Feb (1)
-      ["होली", "होलिका दहन", "आमला एकादशी", "रंग पंचमी"], // Mar (2)
-      ["चैत्र नवरात्रि प्रारंभ", "राम नवमी", "हनुमान जयंती", "कामदा एकादशी"], // Apr (3)
-      ["परशुराम जयंती", "अक्षय तृतीया", "बुद्ध पूर्णिमा", "मोहिनी एकादशी"], // May (4)
-      ["गंगा दशहरा", "निर्जला एकादशी", "वट सावित्री व्रत", "योगिनी एकादशी"], // Jun (5)
-      ["जगन्नाथ रथ यात्रा", "देवशयनी एकादशी", "गुरु पूर्णिमा", "कर्क संक्रांति"], // Jul (6)
-      ["रक्षा बंधन", "श्री कृष्ण जन्माष्टमी", "श्रावणी पूर्णिमा", "पुत्रदा एकादशी"], // Aug (7)
-      ["गणेश चतुर्थी", "ऋषि पंचमी", "राधाष्टमी", "अनंत चतुर्दशी"], // Sep (8)
-      ["शरद नवरात्रि प्रारंभ", "दुर्गा पूजा महाअष्टमी", "विजयादशमी / दशहरा", "शरद पूर्णिमा"], // Oct (9)
-      ["धनतेरस", "नरक चतुर्दशी", "दीपावली / दिवाली", "गोवर्धन पूजा", "भैया दूज", "छठ पूजा"], // Nov (10)
-      ["गीता जयंती", "मोक्षदा एकादशी", "दत्तात्रेय जयंती", "सफला एकादशी"] // Dec (11)
+      // Jan (0)
+      [
+        { name: "मकर संक्रांति", date: "14 जनवरी", time: "पुण्यकाल: सुबह 07:15 AM से शाम 05:45 PM", type: "प्रमुख पर्व" },
+        { name: "लोहड़ी", date: "13 जनवरी", time: "सायंकाल पूजन: शाम 06:15 PM से रात 08:30 PM", type: "पारंपरिक त्योहार" },
+        { name: "स्वामी विवेकानंद जयंती", date: "12 जनवरी", time: "पूरा दिन (राष्ट्रीय युवा दिवस)", type: "जयंती" },
+        { name: "पौष पुत्रदा एकादशी", date: "20 जनवरी", time: "पारण: अगले दिन सुबह 07:14 AM से 09:20 AM", type: "महत्वपूर्ण व्रत" }
+      ],
+      // Feb (1)
+      [
+        { name: "वसन्त पंचमी", date: "22 फरवरी", time: "सरस्वती पूजा मुहूर्त: सुबह 07:12 AM से दोपहर 12:35 PM", type: "प्रमुख पर्व" },
+        { name: "महाशिवरात्रि", date: "15 फरवरी", time: "निशीथ काल पूजा: रात 12:09 AM से 01:01 AM", type: "महा व्रत" },
+        { name: "जया एकादशी", date: "28 फरवरी", time: "पारण: अगले दिन सुबह 06:42 AM से 08:58 AM", type: "एकादशी व्रत" },
+        { name: "रथ सप्तमी", date: "24 फरवरी", time: "सूर्योदय स्नान मुहूर्त: सुबह 05:12 AM से 06:45 AM", type: "पर्व" }
+      ],
+      // Mar (2)
+      [
+        { name: "होलिका दहन", date: "3 मार्च", time: "शुभ मुहूर्त: शाम 06:22 PM से रात 08:45 PM", type: "प्रमुख पर्व" },
+        { name: "होली (धुलंडी)", date: "4 मार्च", time: "प्रतिपदा तिथि: पूरा दिन रंगों का उत्सव", type: "पर्व" },
+        { name: "रंग पंचमी", date: "8 मार्च", time: "पंचमी तिथि: देवी-देवताओं की होली", type: "पर्व" },
+        { name: "आमलकी एकादशी", date: "19 मार्च", time: "पारण: सुबह 06:25 AM से 08:45 AM", type: "एकादशी व्रत" }
+      ],
+      // Apr (3)
+      [
+        { name: "चैत्र नवरात्रि प्रारंभ", date: "18 अप्रैल", time: "कलश स्थापना मुहूर्त: सुबह 06:08 AM से 10:14 AM", type: "नवरात्रि" },
+        { name: "राम नवमी", date: "26 अप्रैल", time: "मध्याह्न पूजा मुहूर्त: सुबह 11:06 AM से दोपहर 01:39 PM", type: "प्रमुख पर्व" },
+        { name: "हनुमान जयंती", date: "30 अप्रैल", time: "पूर्णिमा तिथि: मारुति जन्मोत्सव", type: "जयंती" },
+        { name: "कामदा एकादशी", date: "3 अप्रैल", time: "पारण: सुबह 06:10 AM से 08:30 AM", type: "एकादशी व्रत" }
+      ],
+      // May (4)
+      [
+        { name: "अक्षय तृतीया", date: "9 मई", time: "पूजा मुहूर्त: सुबह 05:45 AM से दोपहर 12:18 PM", type: "अबूझ मुहूर्त" },
+        { name: "परशुराम जयंती", date: "9 मई", time: "तृतीया तिथि प्रारंभ: सुबह 07:22 AM से", type: "जयंती" },
+        { name: "बुद्ध पूर्णिमा", date: "22 मई", time: "पूर्णिमा तिथि: बुद्ध अवतरण दिवस", type: "पर्व" },
+        { name: "मोहिनी एकादशी", date: "18 मई", time: "पारण: सुबह 05:28 AM से 08:12 AM", type: "एकादशी व्रत" }
+      ],
+      // Jun (5)
+      [
+        { name: "निर्जला एकादशी", date: "6 जून", time: "पारण: अगले दिन सुबह 05:24 AM से 08:10 AM", type: "महा व्रत" },
+        { name: "गंगा दशहरा", date: "4 जून", time: "दशमी तिथि: गंगा स्नान का महा मुहूर्त", type: "पर्व" },
+        { name: "वट सावित्री व्रत", date: "14 जून", time: "पूजा मुहूर्त: सुबह 05:23 AM से दोपहर 02:30 PM", type: "सौभाग्य व्रत" },
+        { name: "योगिनी एकादशी", date: "20 जून", time: "पारण: सुबह 05:25 AM से 08:15 AM", type: "एकादशी व्रत" }
+      ],
+      // Jul (6)
+      [
+        { name: "गुरु पूर्णिमा", date: "19 जुलाई", time: "पूजा मुहूर्त: सुबह 06:45 AM से दोपहर 12:00 PM", type: "प्रमुख पर्व" },
+        { name: "जगन्नाथ रथ यात्रा", date: "5 जुलाई", time: "रथ यात्रा प्रस्थान: दोपहर 02:15 PM से", type: "रथोत्सव" },
+        { name: "देवशयनी एकादशी", date: "4 जुलाई", time: "पारण: सुबह 05:28 AM से 08:18 AM", type: "एकादशी व्रत" },
+        { name: "कर्क संक्रांति", date: "16 जुलाई", time: "पुण्यकाल: दोपहर 12:15 PM से शाम 06:50 PM", type: "संक्रांति" }
+      ],
+      // Aug (7)
+      [
+        { name: "रक्षा बंधन", date: "18 अगस्त", time: "भद्रा रहित राखी मुहूर्त: दोपहर 01:35 PM से रात 09:12 PM", type: "प्रमुख पर्व" },
+        { name: "श्री कृष्ण जन्माष्टमी", date: "26 अगस्त", time: "निशीथ पूजा मुहूर्त: रात 12:01 AM से 12:45 AM", type: "महा व्रत" },
+        { name: "श्रावणी पूर्णिमा", date: "18 अगस्त", time: "यज्ञोपवीत पूजन समय: सुबह 06:12 AM से 10:45 AM", type: "पर्व" },
+        { name: "पुत्रदा एकादशी", date: "24 अगस्त", time: "पारण: सुबह 05:55 AM से 08:35 AM", type: "एकादशी व्रत" }
+      ],
+      // Sep (8)
+      [
+        { name: "गणेश चतुर्थी", date: "5 सितंबर", time: "मूर्ति स्थापना मुहूर्त: सुबह 11:03 AM से दोपहर 01:32 PM", type: "प्रमुख पर्व" },
+        { name: "ऋषि पंचमी", date: "6 सितंबर", time: "सप्तऋषि पूजन मुहूर्त: सुबह 11:05 AM से दोपहर 01:35 PM", type: "व्रत" },
+        { name: "राधाष्टमी", date: "9 सितंबर", time: "पूजा मुहूर्त: सुबह 11:04 AM से दोपहर 01:30 PM", type: "पर्व" },
+        { name: "अनंत चतुर्दशी", date: "15 सितंबर", time: "अनंत सूत्र धारण समय: सुबह 06:05 AM से दोपहर 12:12 PM", type: "व्रत" }
+      ],
+      // Oct (9)
+      [
+        { name: "शरद नवरात्रि प्रारंभ", date: "11 अक्टूबर", time: "घटस्थापना मुहूर्त: सुबह 06:21 AM से 08:42 AM", type: "नवरात्रि" },
+        { name: "दुर्गा पूजा महाअष्टमी", date: "18 अक्टूबर", time: "संधि पूजा मुहूर्त: रात 08:12 PM से 09:00 PM", type: "प्रमुख पर्व" },
+        { name: "विजयादशमी / दशहरा", date: "20 अक्टूबर", time: "विजय मुहूर्त: दोपहर 02:01 PM से 02:47 PM", type: "प्रमुख पर्व" },
+        { name: "शरद पूर्णिमा", date: "24 अक्टूबर", time: "लक्ष्मी पूजा मुहूर्त: रात 11:43 PM से 12:35 AM", type: "पर्व" }
+      ],
+      // Nov (10)
+      [
+        { name: "दीपावली / दिवाली", date: "8 नवंबर", time: "लक्ष्मी पूजा मुहूर्त: शाम 05:31 PM से रात 07:30 PM", type: "प्रमुख पर्व" },
+        { name: "धनतेरस", date: "6 नवंबर", time: "प्रदोष काल पूजा मुहूर्त: शाम 05:32 PM से रात 08:11 PM", type: "पर्व" },
+        { name: "नरक चतुर्दशी", date: "7 नवंबर", time: "अभ्यंग स्नान मुहूर्त: सुबह 05:14 AM से 06:38 AM", type: "पर्व" },
+        { name: "गोवर्धन पूजा", date: "9 नवंबर", time: "पूजा मुहूर्त: दोपहर 03:21 PM से शाम 05:27 PM", type: "पर्व" },
+        { name: "भैया दूज", date: "10 नवंबर", time: "टीका लगाने का मुहूर्त: दोपहर 01:09 PM से 03:22 PM", type: "पर्व" },
+        { name: "छठ पूजा (संध्या अर्घ्य)", date: "14 नवंबर", time: "अर्घ्यदान (सूर्यास्त समय): शाम 05:25 PM", type: "महा पर्व" }
+      ],
+      // Dec (11)
+      [
+        { name: "गीता जयंती", date: "20 दिसंबर", time: "मोक्षदा एकादशी के दिन गीता पाठ मुहूर्त", type: "पर्व" },
+        { name: "मोक्षदा एकादशी", date: "20 दिसंबर", time: "पारण: सुबह 07:09 AM से 09:15 AM", type: "एकादशी व्रत" },
+        { name: "दत्तात्रेय जयंती", date: "23 दिसंबर", time: "प्रदोष पूजा मुहूर्त: शाम 05:18 PM से रात 08:02 PM", type: "जयंती" },
+        { name: "सफला एकादशी", date: "5 दिसंबर", time: "पारण: सुबह 07:01 AM से 09:12 AM", type: "एकादशी व्रत" }
+      ]
     ];
-    return festivalsList[m] || ["प्रदोष व्रत", "मासिक शिवरात्रि"];
+    return festivalsList[m] || [
+      { name: "प्रदोष व्रत", date: "त्रयोदशी तिथि", time: "प्रदोष काल मुहूर्त: शाम 05:30 PM से रात 08:00 PM", type: "पाक्षिक व्रत" },
+      { name: "मासिक शिवरात्रि", date: "चतुर्दशी तिथि", time: "निशीथ काल पूजा: रात 11:55 PM से 12:45 AM", type: "पाक्षिक व्रत" }
+    ];
   };
+
 
   return (
     <PageLayout>
@@ -182,20 +251,59 @@ const PanchangPage = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative z-50">
               <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">
                 {language === 'en' ? 'Location' : 'स्थान'}:
               </span>
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="bg-black/35 border-purple-900/40 text-sm w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CITIES.map(c => (
-                    <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative w-[180px]">
+                <div className="flex items-center bg-black/35 border border-purple-900/40 rounded-md px-2 py-1">
+                  <Search className="h-3.5 w-3.5 text-purple-400 mr-1.5 shrink-0" />
+                  <Input 
+                    type="text"
+                    value={citySearch}
+                    onChange={(e) => {
+                      setCitySearch(e.target.value);
+                      setShowCityDropdown(true);
+                    }}
+                    onFocus={() => setShowCityDropdown(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowCityDropdown(false), 250);
+                    }}
+                    placeholder={language === 'en' ? "Search city..." : "शहर खोजें..."}
+                    className="bg-transparent border-0 outline-none p-0 text-xs w-full focus-visible:ring-0 focus-visible:ring-offset-0 h-6 text-slate-100"
+                  />
+                </div>
+                {showCityDropdown && (
+                  <div className="absolute left-0 right-0 mt-1 bg-purple-950/95 border border-purple-900/60 rounded-md shadow-lg max-h-[200px] overflow-y-auto z-50 divide-y divide-purple-900/20">
+                    {INDIAN_CITIES.filter(city => 
+                      city.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+                      city.state.toLowerCase().includes(citySearch.toLowerCase())
+                    ).length > 0 ? (
+                      INDIAN_CITIES.filter(city => 
+                        city.name.toLowerCase().includes(citySearch.toLowerCase()) || 
+                        city.state.toLowerCase().includes(citySearch.toLowerCase())
+                      ).map(city => (
+                        <button
+                          key={`${city.name}-${city.state}`}
+                          onClick={() => {
+                            setSelectedCity(city.name);
+                            setCitySearch(city.name);
+                            setShowCityDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-[11px] hover:bg-purple-900/40 text-slate-200 transition-colors flex justify-between items-center"
+                        >
+                          <span className="font-medium">{city.name}</span>
+                          <span className="text-[9px] text-purple-400 font-semibold">{city.state}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-2 text-[10px] text-muted-foreground text-center">
+                        {language === 'en' ? "No cities found" : "कोई शहर नहीं मिला"}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -264,11 +372,25 @@ const PanchangPage = () => {
                     <div className="bg-purple-950/20 p-3 rounded-lg border border-purple-900/10">
                       <span className="text-xs text-purple-400 font-bold block mb-1">तिथि (Tithi)</span>
                       <span className="font-medium text-slate-200">{panchang.tithi}</span>
+                      {panchang.tithiEndTime ? (
+                        <span className="text-xs text-amber-400 block mt-1">
+                          {panchang.tithiEndTime} PM तक (तदुपरान्त {panchang.tithiNextName})
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-400/70 block mt-1">पूर्ण दिन</span>
+                      )}
                     </div>
 
                     <div className="bg-purple-950/20 p-3 rounded-lg border border-purple-900/10">
                       <span className="text-xs text-purple-400 font-bold block mb-1">नक्षत्र (Nakshatra)</span>
                       <span className="font-medium text-slate-200">{panchang.nakshatra} ({panchang.nakshatraLords} स्वामी)</span>
+                      {panchang.nakshatraEndTime ? (
+                        <span className="text-xs text-amber-400 block mt-1">
+                          {panchang.nakshatraEndTime} PM तक (तदुपरान्त {panchang.nakshatraNextName})
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-400/70 block mt-1">पूर्ण दिन</span>
+                      )}
                     </div>
 
                     <div className="bg-purple-950/20 p-3 rounded-lg border border-purple-900/10">
@@ -552,12 +674,18 @@ const PanchangPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 text-xs">
-                    {getFestivals().map((f, idx) => (
-                      <div key={idx} className="flex justify-between items-center border-b border-purple-900/10 pb-2 last:border-b-0">
-                        <span className="font-semibold text-slate-200">{f}</span>
-                        <Badge variant="cosmic" className="text-[10px] px-2 py-0.5">
-                          {idx % 2 === 0 ? "प्रमुख व्रत" : "पर्व"}
-                        </Badge>
+                    {getFestivals().map((f: any, idx) => (
+                      <div key={idx} className="flex flex-col border-b border-purple-900/10 pb-3 last:border-b-0 gap-1.5 pt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-sm text-slate-200">{f.name}</span>
+                          <span className="text-[11px] font-semibold text-amber-400 bg-amber-950/20 px-2 py-0.5 rounded border border-amber-900/30 font-mono">{f.date}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">{f.time}</span>
+                          <Badge variant="cosmic" className="text-[10px] px-2 py-0.5">
+                            {f.type}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </CardContent>

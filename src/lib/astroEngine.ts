@@ -36,6 +36,10 @@ export interface PanchangData {
   gandmool: boolean;
   mandiTime: string;
   gulikaTime: string;
+  tithiEndTime?: string;
+  tithiNextName?: string;
+  nakshatraEndTime?: string;
+  nakshatraNextName?: string;
 }
 
 export interface MuhuratSegment {
@@ -881,8 +885,102 @@ export function generateKundaliPlacements(birthDate: Date, birthTime: string, la
   return list;
 }
 
+export function getPanchangTimes(date: Date, latitude: number, longitude: number) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const getTithiIndexAtTime = (fractionOfDay: number) => {
+    const timeMs = startOfDay.getTime() + fractionOfDay * 24 * 60 * 60 * 1000;
+    const jd = 2440587.5 + timeMs / 86400000.0;
+    const d = jd - 2451545.0;
+    const ayan = getAyanamsa(d);
+    const sunT = getGeocentricLongitude("Sun", d);
+    const sunL = (sunT - ayan + 360) % 360;
+    const moonT = getMoonLongitude(d);
+    const moonL = (moonT - ayan + 360) % 360;
+    const diff = (moonL - sunL + 360) % 360;
+    return Math.floor(diff / 12) % 30;
+  };
+
+  const getNakshatraIndexAtTime = (fractionOfDay: number) => {
+    const timeMs = startOfDay.getTime() + fractionOfDay * 24 * 60 * 60 * 1000;
+    const jd = 2440587.5 + timeMs / 86400000.0;
+    const d = jd - 2451545.0;
+    const ayan = getAyanamsa(d);
+    const moonT = getMoonLongitude(d);
+    const moonL = (moonT - ayan + 360) % 360;
+    return Math.floor(moonL / 13.333333) % 27;
+  };
+
+  const startTithi = getTithiIndexAtTime(0);
+  let tithiEndTime = "";
+  let tithiNextName = "";
+
+  for (let h = 1; h <= 24; h++) {
+    const currentTithi = getTithiIndexAtTime(h / 24);
+    if (currentTithi !== startTithi) {
+      let low = (h - 1) / 24;
+      let high = h / 24;
+      for (let iter = 0; iter < 6; iter++) {
+        const mid = (low + high) / 2;
+        if (getTithiIndexAtTime(mid) === startTithi) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+      const transitionFraction = (low + high) / 2;
+      const totalMinutes = transitionFraction * 24 * 60;
+      tithiEndTime = formatMinutesToTime(totalMinutes);
+      
+      const nextTithiNum = (currentTithi % 15) + 1;
+      const nextPaksha = currentTithi >= 15 ? 'कृष्ण पक्ष' : 'शुक्ल पक्ष';
+      const tithiHindiNames = [
+        "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी", "षष्ठी", "सप्तमी", 
+        "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", 
+        currentTithi === 14 ? "पूर्णिमा" : "अमावस्या"
+      ];
+      tithiNextName = `${nextPaksha} ${tithiHindiNames[nextTithiNum - 1]}`;
+      break;
+    }
+  }
+
+  const startNak = getNakshatraIndexAtTime(0);
+  let nakshatraEndTime = "";
+  let nakshatraNextName = "";
+
+  for (let h = 1; h <= 24; h++) {
+    const currentNak = getNakshatraIndexAtTime(h / 24);
+    if (currentNak !== startNak) {
+      let low = (h - 1) / 24;
+      let high = h / 24;
+      for (let iter = 0; iter < 6; iter++) {
+        const mid = (low + high) / 2;
+        if (getNakshatraIndexAtTime(mid) === startNak) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+      const transitionFraction = (low + high) / 2;
+      const totalMinutes = transitionFraction * 24 * 60;
+      nakshatraEndTime = formatMinutesToTime(totalMinutes);
+      nakshatraNextName = HINDI_NAKSHATRAS[currentNak];
+      break;
+    }
+  }
+
+  return {
+    tithiEndTime,
+    tithiNextName,
+    nakshatraEndTime,
+    nakshatraNextName
+  };
+}
+
 // 11. Complete Dynamic Panchang details based on Selected Date & Location
 export function getFullPanchang(date: Date, latitude: number, longitude: number): PanchangData {
+  const times = getPanchangTimes(date, latitude, longitude);
   const solarDetails = calculateSunriseSunset(date, latitude, longitude);
   const dLength = calculateDivamaanRatrimaan(solarDetails.sunriseRaw, solarDetails.sunsetRaw);
   
@@ -1002,7 +1100,11 @@ export function getFullPanchang(date: Date, latitude: number, longitude: number)
     panchak,
     gandmool,
     mandiTime: mg.mandi,
-    gulikaTime: mg.gulika
+    gulikaTime: mg.gulika,
+    tithiEndTime: times.tithiEndTime,
+    tithiNextName: times.tithiNextName,
+    nakshatraEndTime: times.nakshatraEndTime,
+    nakshatraNextName: times.nakshatraNextName
   };
 }
 
