@@ -137,5 +137,16 @@ export const INDIAN_CITIES: City[] = [
   { name: "Leh", state: "Ladakh", lat: 34.1526, lng: 77.5771 },
   { name: "Chandigarh", state: "Chandigarh", lat: 30.7333, lng: 76.7794 },
   { name: "Puducherry", state: "Puducherry", lat: 11.9416, lng: 79.8083 },
-  { name: "Port Blair", state: "Andaman and Nicobar", lat: 11.6234, lng: 92.7265 }
+  { name: "Port Blair", state: "Andaman and Nicobar", lat: 11.6234, lng: 92.7265 },
+  // Indian Villages
+  { name: "Punsari", state: "Gujarat (Village)", lat: 23.468, lng: 73.085 },
+  { name: "Mawlynnong", state: "Meghalaya (Village)", lat: 25.201, lng: 91.917 },
+  { name: "Munsyari", state: "Uttarakhand (Village)", lat: 30.071, lng: 80.237 },
+  { name: "Kila Raipur", state: "Punjab (Village)", lat: 30.767, lng: 75.842 },
+  { name: "Shani Shingnapur", state: "Maharashtra (Village)", lat: 19.387, lng: 74.833 },
+  { name: "Piplantri", state: "Rajasthan (Village)", lat: 25.111, lng: 73.811 },
+  { name: "Hampi", state: "Karnataka (Village)", lat: 15.335, lng: 76.460 },
+  { name: "Chorao", state: "Goa (Village)", lat: 15.539, lng: 73.861 },
+  { name: "Hiware Bazar", state: "Maharashtra (Village)", lat: 19.117, lng: 74.912 },
+  { name: "Odanthurai", state: "Tamil Nadu (Village)", lat: 11.311, lng: 77.014 }
 ];

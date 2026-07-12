@@ -177,9 +177,9 @@ export function calculateSunriseSunset(date: Date, latitude: number, longitude: 
   const sunsetMinutes = localNoonMinutes + H * 60;
 
   return {
-    sunrise: formatMinutesToTime(sunriseMinutes),
-    sunset: formatMinutesToTime(sunsetMinutes),
-    localNoon: formatMinutesToTime(localNoonMinutes),
+    sunrise: formatMinutesTo12HourTime(sunriseMinutes),
+    sunset: formatMinutesTo12HourTime(sunsetMinutes),
+    localNoon: formatMinutesTo12HourTime(localNoonMinutes),
     sunriseRaw: sunriseMinutes,
     sunsetRaw: sunsetMinutes,
     localNoonRaw: localNoonMinutes
@@ -259,7 +259,7 @@ export function calculateMahamuhurats(sunriseMinutes: number, sunsetMinutes: num
     const end = start + daySegment;
     muhurats.push({
       name: dayNames[i].name,
-      time: `${formatMinutesToTime(start)} - ${formatMinutesToTime(end)}`,
+      time: `${formatMinutesTo12HourTime(start)} - ${formatMinutesTo12HourTime(end)}`,
       isAuspicious: dayNames[i].isAuspicious,
       nature: dayNames[i].nature
     });
@@ -271,7 +271,7 @@ export function calculateMahamuhurats(sunriseMinutes: number, sunsetMinutes: num
     const end = start + nightSegment;
     muhurats.push({
       name: nightNames[i].name,
-      time: `${formatMinutesToTime(start)} - ${formatMinutesToTime(end)}`,
+      time: `${formatMinutesTo12HourTime(start)} - ${formatMinutesTo12HourTime(end)}`,
       isAuspicious: nightNames[i].isAuspicious,
       nature: nightNames[i].nature
     });
@@ -309,7 +309,7 @@ export function calculateHora(sunriseMinutes: number, weekdayIndex: number) {
     
     horaList.push({
       hourNum: i + 1,
-      time: `${formatMinutesToTime(startTime)} - ${formatMinutesToTime(endTime)}`,
+      time: `${formatMinutesTo12HourTime(startTime)} - ${formatMinutesTo12HourTime(endTime)}`,
       ruler: planetName,
       favorableActivities: favorableMap[planetName] || []
     });
@@ -381,7 +381,7 @@ export function calculateChoghadiya(sunriseMinutes: number, sunsetMinutes: numbe
     const qName = names[nameIndex];
     list.push({
       name: qName,
-      time: `${formatMinutesToTime(start)} - ${formatMinutesToTime(end)}`,
+      time: `${formatMinutesTo12HourTime(start)} - ${formatMinutesTo12HourTime(end)}`,
       ruler: choghadiyaRulers[qName],
       quality: qName,
       isAuspicious: choghadiyaAuspiciousness[qName]
@@ -396,7 +396,7 @@ export function calculateChoghadiya(sunriseMinutes: number, sunsetMinutes: numbe
     const qName = names[nameIndex];
     list.push({
       name: qName + " (रात्रि)",
-      time: `${formatMinutesToTime(start)} - ${formatMinutesToTime(end)}`,
+      time: `${formatMinutesTo12HourTime(start)} - ${formatMinutesTo12HourTime(end)}`,
       ruler: choghadiyaRulers[qName],
       quality: qName,
       isAuspicious: choghadiyaAuspiciousness[qName]
@@ -885,13 +885,52 @@ export function generateKundaliPlacements(birthDate: Date, birthTime: string, la
   return list;
 }
 
+export function formatMinutesTo12HourTime(totalMinutes: number): string {
+  const minutes = Math.floor(totalMinutes % 1440);
+  let h = Math.floor(minutes / 60);
+  const m = Math.floor(minutes % 60);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
+export function formatMinutesToHindiTime(totalMinutes: number): string {
+  const isNextDay = totalMinutes >= 1440;
+  const minutes = Math.floor(totalMinutes % 1440);
+  let h = Math.floor(minutes / 60);
+  const m = Math.floor(minutes % 60);
+  
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  
+  const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${period}`;
+  return isNextDay ? `अगले दिन सुबह ${timeStr}` : timeStr;
+}
+
+export function getJulianDateIST(date: Date, localHours: number, localMinutes: number): number {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
+  const localMinutesTotal = localHours * 60 + localMinutes;
+  utcDate.setUTCMinutes(utcDate.getUTCMinutes() + localMinutesTotal - 330);
+
+  return 2440587.5 + utcDate.getTime() / 86400000.0;
+}
+
 export function getPanchangTimes(date: Date, latitude: number, longitude: number) {
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
+  const solarDetails = calculateSunriseSunset(date, latitude, longitude);
+  const sunriseMinutes = solarDetails.sunriseRaw;
 
   const getTithiIndexAtTime = (fractionOfDay: number) => {
-    const timeMs = startOfDay.getTime() + fractionOfDay * 24 * 60 * 60 * 1000;
-    const jd = 2440587.5 + timeMs / 86400000.0;
+    const totalLocalMinutes = sunriseMinutes + fractionOfDay * 24 * 60;
+    const localHours = Math.floor(totalLocalMinutes / 60);
+    const localMins = Math.floor(totalLocalMinutes % 60);
+
+    const jd = getJulianDateIST(date, localHours, localMins);
     const d = jd - 2451545.0;
     const ayan = getAyanamsa(d);
     const sunT = getGeocentricLongitude("Sun", d);
@@ -903,8 +942,11 @@ export function getPanchangTimes(date: Date, latitude: number, longitude: number
   };
 
   const getNakshatraIndexAtTime = (fractionOfDay: number) => {
-    const timeMs = startOfDay.getTime() + fractionOfDay * 24 * 60 * 60 * 1000;
-    const jd = 2440587.5 + timeMs / 86400000.0;
+    const totalLocalMinutes = sunriseMinutes + fractionOfDay * 24 * 60;
+    const localHours = Math.floor(totalLocalMinutes / 60);
+    const localMins = Math.floor(totalLocalMinutes % 60);
+
+    const jd = getJulianDateIST(date, localHours, localMins);
     const d = jd - 2451545.0;
     const ayan = getAyanamsa(d);
     const moonT = getMoonLongitude(d);
@@ -930,8 +972,8 @@ export function getPanchangTimes(date: Date, latitude: number, longitude: number
         }
       }
       const transitionFraction = (low + high) / 2;
-      const totalMinutes = transitionFraction * 24 * 60;
-      tithiEndTime = formatMinutesToTime(totalMinutes);
+      const totalMinutes = sunriseMinutes + transitionFraction * 24 * 60;
+      tithiEndTime = formatMinutesToHindiTime(totalMinutes);
       
       const nextTithiNum = (currentTithi % 15) + 1;
       const nextPaksha = currentTithi >= 15 ? 'कृष्ण पक्ष' : 'शुक्ल पक्ष';
@@ -963,8 +1005,8 @@ export function getPanchangTimes(date: Date, latitude: number, longitude: number
         }
       }
       const transitionFraction = (low + high) / 2;
-      const totalMinutes = transitionFraction * 24 * 60;
-      nakshatraEndTime = formatMinutesToTime(totalMinutes);
+      const totalMinutes = sunriseMinutes + transitionFraction * 24 * 60;
+      nakshatraEndTime = formatMinutesToHindiTime(totalMinutes);
       nakshatraNextName = HINDI_NAKSHATRAS[currentNak];
       break;
     }
@@ -984,14 +1026,15 @@ export function getFullPanchang(date: Date, latitude: number, longitude: number)
   const solarDetails = calculateSunriseSunset(date, latitude, longitude);
   const dLength = calculateDivamaanRatrimaan(solarDetails.sunriseRaw, solarDetails.sunsetRaw);
   
-  const localDateTime = new Date(date);
-  localDateTime.setHours(12, 0, 0, 0); // delhi noon baseline
+  const sunriseMinutes = solarDetails.sunriseRaw;
+  const localHours = Math.floor(sunriseMinutes / 60);
+  const localMins = Math.floor(sunriseMinutes % 60);
   
-  const jd = 2440587.5 + localDateTime.getTime() / 86400000.0;
+  const jd = getJulianDateIST(date, localHours, localMins);
   const d = jd - 2451545.0;
   const ayanamsa = getAyanamsa(d);
 
-  // Compute live Nirayana longitudes of Sun and Moon
+  // Compute live Nirayana longitudes of Sun and Moon at Sunrise
   const sunTropical = getGeocentricLongitude("Sun", d);
   const sunLong = (sunTropical - ayanamsa + 360) % 360;
 
