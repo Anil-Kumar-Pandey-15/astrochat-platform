@@ -35,7 +35,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <StarBackground />
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/horoscope" element={<HoroscopePage />} />
