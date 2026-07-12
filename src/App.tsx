@@ -26,6 +26,10 @@ import StarBackground from "./components/StarBackground";
 
 const queryClient = new QueryClient();
 
+const basename = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL.slice(0, -1)
+  : import.meta.env.BASE_URL;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="dark">
@@ -35,7 +39,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <StarBackground />
-            <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <BrowserRouter basename={basename || undefined}>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/horoscope" element={<HoroscopePage />} />
