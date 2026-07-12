@@ -8,23 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { getCompatibility, zodiacSigns } from '@/data/zodiacSigns';
-import { calculateGunaMilan, HINDI_NAKSHATRAS, NAKSHATRAS } from '@/lib/astroEngine';
-import { Heart, Sparkles, AlertCircle, FileText, CheckCircle2, XCircle, Users } from 'lucide-react';
+import { calculateGunaMilan, calculateDetailedMatching, HINDI_NAKSHATRAS, NAKSHATRAS } from '@/lib/astroEngine';
+import { INDIAN_CITIES } from '@/data/citiesData';
+import { Heart, Sparkles, AlertCircle, FileText, CheckCircle2, XCircle, Users, Calendar, Clock, MapPin, Search } from 'lucide-react';
 import { toast } from 'sonner';
-
-const CITIES = [
-  { name: "Delhi", lat: 28.6139, lng: 77.2090 },
-  { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
-  { name: "Bangalore", lat: 12.9716, lng: 77.5946 },
-  { name: "Chennai", lat: 13.0827, lng: 80.2707 },
-  { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
-  { name: "Pune", lat: 18.5204, lng: 73.8567 },
-  { name: "Hyderabad", lat: 17.3850, lng: 78.4867 },
-  { name: "Ahmedabad", lat: 23.0225, lng: 72.5714 },
-  { name: "Jaipur", lat: 26.9124, lng: 75.7873 },
-  { name: "Lucknow", lat: 26.8467, lng: 80.9462 },
-  { name: "Patna", lat: 25.5941, lng: 85.1376 }
-];
 
 const CompatibilityPage = () => {
   const { t, language } = useTranslation();
@@ -35,11 +22,21 @@ const CompatibilityPage = () => {
   const [zResult, setZResult] = useState('');
   const [showZResult, setShowZResult] = useState(false);
 
-  // Guna Milan matching state
+  // Detailed Guna Milan matching state
   const [brideName, setBrideName] = useState('');
+  const [brideDob, setBrideDob] = useState('1998-05-15');
+  const [brideTime, setBrideTime] = useState('12:00');
+  const [brideCitySearch, setBrideCitySearch] = useState('Delhi');
+  const [brideCity, setBrideCity] = useState({ name: 'Delhi', lat: 28.6139, lng: 77.2090 });
+  const [showBrideCityDropdown, setShowBrideCityDropdown] = useState(false);
+
   const [groomName, setGroomName] = useState('');
-  const [brideNak, setBrideNak] = useState('0'); // Index
-  const [groomNak, setGroomNak] = useState('0'); // Index
+  const [groomDob, setGroomDob] = useState('1995-08-20');
+  const [groomTime, setGroomTime] = useState('14:30');
+  const [groomCitySearch, setGroomCitySearch] = useState('Mumbai');
+  const [groomCity, setGroomCity] = useState({ name: 'Mumbai', lat: 19.0760, lng: 72.8777 });
+  const [showGroomCityDropdown, setShowGroomCityDropdown] = useState(false);
+
   const [milanResult, setMilanResult] = useState<any>(null);
 
   const formatName = (name: string) => {
@@ -60,12 +57,25 @@ const CompatibilityPage = () => {
       toast.error(language === 'en' ? "Please enter names." : "कृपया वधू और वर के नाम दर्ज करें।");
       return;
     }
+    if (!brideDob || !groomDob) {
+      toast.error(language === 'en' ? "Please select birth dates." : "कृपया जन्म तिथि का चयन करें।");
+      return;
+    }
+    if (!brideTime || !groomTime) {
+      toast.error(language === 'en' ? "Please select birth times." : "कृपया जन्म समय का चयन करें।");
+      return;
+    }
 
-    const bIndex = parseInt(brideNak);
-    const gIndex = parseInt(groomNak);
-    const res = calculateGunaMilan(bIndex, gIndex);
-    setMilanResult(res);
-    toast.success(language === 'en' ? "Ashtakoot Guna Milan calculated!" : "अष्टकूट गुण मिलान की गणना पूर्ण हुई!");
+    try {
+      const res = calculateDetailedMatching(
+        brideName, new Date(brideDob), brideTime, brideCity.lat, brideCity.lng,
+        groomName, new Date(groomDob), groomTime, groomCity.lat, groomCity.lng
+      );
+      setMilanResult(res);
+      toast.success(language === 'en' ? "Detailed Ashtakoot Guna Milan calculated!" : "विस्तृत अष्टकूट गुण मिलान की गणना पूर्ण हुई!");
+    } catch (err) {
+      toast.error(language === 'en' ? "Error calculating compatibility." : "मिलान की गणना में त्रुटि हुई।");
+    }
   };
 
   return (
@@ -100,13 +110,13 @@ const CompatibilityPage = () => {
                       {language === 'en' ? 'Enter Details' : 'विवरण दर्ज करें'}
                     </CardTitle>
                     <CardDescription>
-                      {language === 'en' ? 'Select birth Nakshatras for bride & groom' : 'वर और वधू के जन्म नक्षत्र का चयन करें'}
+                      {language === 'en' ? 'Enter DOB, time & place for bride & groom' : 'वर और वधू के जन्म का विवरण दर्ज करें'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={checkGunaMilan} className="space-y-5">
                       {/* Bride Section */}
-                      <div className="space-y-2.5 p-3 rounded-lg border border-pink-900/20 bg-pink-950/5">
+                      <div className="space-y-3.5 p-3 rounded-lg border border-pink-900/20 bg-pink-950/5">
                         <span className="text-xs font-bold text-pink-400 uppercase tracking-wider block">
                           {language === 'en' ? 'Bride Details' : 'वधू विवरण'}
                         </span>
@@ -121,27 +131,94 @@ const CompatibilityPage = () => {
                             className="bg-black/35 border-pink-900/30 text-slate-200"
                           />
                         </div>
-                        <div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-slate-300 block mb-1">
+                              {language === 'en' ? 'Birth Date' : 'जन्म तिथि'}
+                            </label>
+                            <div className="relative">
+                              <Calendar className="absolute left-2 top-2.5 h-3.5 w-3.5 text-pink-400/70" />
+                              <Input 
+                                type="date"
+                                value={brideDob} 
+                                onChange={(e) => setBrideDob(e.target.value)} 
+                                className="bg-black/35 border-pink-900/30 text-slate-200 pl-7 text-[11px]"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-300 block mb-1">
+                              {language === 'en' ? 'Birth Time' : 'जन्म समय'}
+                            </label>
+                            <div className="relative">
+                              <Clock className="absolute left-2 top-2.5 h-3.5 w-3.5 text-pink-400/70" />
+                              <Input 
+                                type="time"
+                                value={brideTime} 
+                                onChange={(e) => setBrideTime(e.target.value)} 
+                                className="bg-black/35 border-pink-900/30 text-slate-200 pl-7 text-[11px]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Bride Birth Place Autocomplete */}
+                        <div className="relative">
                           <label className="text-xs font-medium text-slate-300 block mb-1">
-                            {language === 'en' ? 'Birth Nakshatra' : 'जन्म नक्षत्र'}
+                            {language === 'en' ? 'Birth Place' : 'जन्म स्थान'}
                           </label>
-                          <Select value={brideNak} onValueChange={setBrideNak}>
-                            <SelectTrigger className="bg-black/35 border-pink-900/30 text-slate-300">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {NAKSHATRAS.map((nak, idx) => (
-                                <SelectItem key={idx} value={idx.toString()}>
-                                  {idx + 1}. {language === 'en' ? nak : HINDI_NAKSHATRAS[idx]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center bg-black/35 border border-pink-900/30 rounded-md px-2 py-1">
+                            <MapPin className="h-3.5 w-3.5 text-pink-400/70 mr-1.5 shrink-0" />
+                            <Input 
+                              type="text"
+                              value={brideCitySearch}
+                              onChange={(e) => {
+                                setBrideCitySearch(e.target.value);
+                                setShowBrideCityDropdown(true);
+                              }}
+                              onFocus={() => setShowBrideCityDropdown(true)}
+                              onBlur={() => {
+                                setTimeout(() => setShowBrideCityDropdown(false), 250);
+                              }}
+                              placeholder={language === 'en' ? "Search city..." : "शहर खोजें..."}
+                              className="bg-transparent border-0 outline-none p-0 text-xs w-full focus-visible:ring-0 focus-visible:ring-offset-0 h-6 text-slate-100"
+                            />
+                          </div>
+                          {showBrideCityDropdown && (
+                            <div className="absolute left-0 right-0 mt-1 bg-purple-950/95 border border-purple-900/60 rounded-md shadow-lg max-h-[150px] overflow-y-auto z-50 divide-y divide-purple-900/20">
+                              {INDIAN_CITIES.filter(city => 
+                                city.name.toLowerCase().includes(brideCitySearch.toLowerCase()) || 
+                                city.state.toLowerCase().includes(brideCitySearch.toLowerCase())
+                              ).length > 0 ? (
+                                INDIAN_CITIES.filter(city => 
+                                  city.name.toLowerCase().includes(brideCitySearch.toLowerCase()) || 
+                                  city.state.toLowerCase().includes(brideCitySearch.toLowerCase())
+                                ).map(city => (
+                                  <button
+                                    type="button"
+                                    key={`${city.name}-${city.state}`}
+                                    onClick={() => {
+                                      setBrideCity(city);
+                                      setBrideCitySearch(city.name);
+                                      setShowBrideCityDropdown(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-[11px] hover:bg-purple-900/40 text-slate-200 transition-colors flex justify-between items-center"
+                                  >
+                                    <span className="font-medium">{city.name}</span>
+                                    <span className="text-[9px] text-purple-400 font-semibold">{city.state}</span>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-2 text-[10px] text-muted-foreground text-center">
+                                  {language === 'en' ? "No cities found" : "कोई शहर नहीं मिला"}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Groom Section */}
-                      <div className="space-y-2.5 p-3 rounded-lg border border-blue-900/20 bg-blue-950/5">
+                      <div className="space-y-3.5 p-3 rounded-lg border border-blue-900/20 bg-blue-950/5">
                         <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
                           {language === 'en' ? 'Groom Details' : 'वर विवरण'}
                         </span>
@@ -156,28 +233,95 @@ const CompatibilityPage = () => {
                             className="bg-black/35 border-blue-900/30 text-slate-200"
                           />
                         </div>
-                        <div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-slate-300 block mb-1">
+                              {language === 'en' ? 'Birth Date' : 'जन्म तिथि'}
+                            </label>
+                            <div className="relative">
+                              <Calendar className="absolute left-2 top-2.5 h-3.5 w-3.5 text-blue-400/70" />
+                              <Input 
+                                type="date"
+                                value={groomDob} 
+                                onChange={(e) => setGroomDob(e.target.value)} 
+                                className="bg-black/35 border-blue-900/30 text-slate-200 pl-7 text-[11px]"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-300 block mb-1">
+                              {language === 'en' ? 'Birth Time' : 'जन्म समय'}
+                            </label>
+                            <div className="relative">
+                              <Clock className="absolute left-2 top-2.5 h-3.5 w-3.5 text-blue-400/70" />
+                              <Input 
+                                type="time"
+                                value={groomTime} 
+                                onChange={(e) => setGroomTime(e.target.value)} 
+                                className="bg-black/35 border-blue-900/30 text-slate-200 pl-7 text-[11px]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Groom Birth Place Autocomplete */}
+                        <div className="relative">
                           <label className="text-xs font-medium text-slate-300 block mb-1">
-                            {language === 'en' ? 'Birth Nakshatra' : 'जन्म नक्षत्र'}
+                            {language === 'en' ? 'Birth Place' : 'जन्म स्थान'}
                           </label>
-                          <Select value={groomNak} onValueChange={setGroomNak}>
-                            <SelectTrigger className="bg-black/35 border-blue-900/30 text-slate-300">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {NAKSHATRAS.map((nak, idx) => (
-                                <SelectItem key={idx} value={idx.toString()}>
-                                  {idx + 1}. {language === 'en' ? nak : HINDI_NAKSHATRAS[idx]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center bg-black/35 border border-blue-900/30 rounded-md px-2 py-1">
+                            <MapPin className="h-3.5 w-3.5 text-blue-400/70 mr-1.5 shrink-0" />
+                            <Input 
+                              type="text"
+                              value={groomCitySearch}
+                              onChange={(e) => {
+                                setGroomCitySearch(e.target.value);
+                                setShowGroomCityDropdown(true);
+                              }}
+                              onFocus={() => setShowGroomCityDropdown(true)}
+                              onBlur={() => {
+                                setTimeout(() => setShowGroomCityDropdown(false), 250);
+                              }}
+                              placeholder={language === 'en' ? "Search city..." : "शहर खोजें..."}
+                              className="bg-transparent border-0 outline-none p-0 text-xs w-full focus-visible:ring-0 focus-visible:ring-offset-0 h-6 text-slate-100"
+                            />
+                          </div>
+                          {showGroomCityDropdown && (
+                            <div className="absolute left-0 right-0 mt-1 bg-purple-950/95 border border-purple-900/60 rounded-md shadow-lg max-h-[150px] overflow-y-auto z-50 divide-y divide-purple-900/20">
+                              {INDIAN_CITIES.filter(city => 
+                                city.name.toLowerCase().includes(groomCitySearch.toLowerCase()) || 
+                                city.state.toLowerCase().includes(groomCitySearch.toLowerCase())
+                              ).length > 0 ? (
+                                INDIAN_CITIES.filter(city => 
+                                  city.name.toLowerCase().includes(groomCitySearch.toLowerCase()) || 
+                                  city.state.toLowerCase().includes(groomCitySearch.toLowerCase())
+                                ).map(city => (
+                                  <button
+                                    type="button"
+                                    key={`${city.name}-${city.state}`}
+                                    onClick={() => {
+                                      setGroomCity(city);
+                                      setGroomCitySearch(city.name);
+                                      setShowGroomCityDropdown(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-[11px] hover:bg-purple-900/40 text-slate-200 transition-colors flex justify-between items-center"
+                                  >
+                                    <span className="font-medium">{city.name}</span>
+                                    <span className="text-[9px] text-purple-400 font-semibold">{city.state}</span>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-2 text-[10px] text-muted-foreground text-center">
+                                  {language === 'en' ? "No cities found" : "कोई शहर नहीं मिला"}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                        <Heart className="mr-2 h-4 w-4" />
-                        {language === 'en' ? 'Calculate Milan Score' : 'मिलान जांचें'}
+                        <Heart className="mr-2 h-4 w-4 text-pink-300" />
+                        {language === 'en' ? 'Calculate Compatibility' : 'विस्तृत विवाह अनुकूलता मिलान करें'}
                       </Button>
                     </form>
                   </CardContent>
@@ -190,10 +334,10 @@ const CompatibilityPage = () => {
                   <div className="flex flex-col items-center justify-center border border-purple-900/20 rounded-xl p-12 h-full text-center bg-purple-950/5">
                     <Heart className="h-16 w-16 text-rose-800/40 mb-4 animate-pulse" />
                     <h3 className="text-xl font-medium text-purple-200">
-                      {language === 'en' ? 'Marriage Guna Score' : 'गुण मिलान स्कोर'}
+                      {language === 'en' ? 'Detailed Kundali Matching' : 'कुंडली मिलान स्कोर (36 गुण)'}
                     </h3>
                     <p className="text-muted-foreground mt-2 max-w-sm">
-                      {language === 'en' ? 'Fill out the names and select birth stars to run the Ashtakoot calculations' : 'वर और वधू के विवरण भरकर अष्टकूट ३६ गुणों की जांच करें'}
+                      {language === 'en' ? 'Fill out the DOB, time, and birthplace for both to run the Ashtakoot & Manglik calculations' : 'वर और वधु की जन्म तिथि, समय और स्थान भरकर संपूर्ण मिलान चक्र की गणना करें'}
                     </p>
                   </div>
                 ) : (
@@ -201,66 +345,148 @@ const CompatibilityPage = () => {
                     <CardHeader className="border-b border-purple-900/10">
                       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <div>
-                          <CardTitle className="text-purple-200">
-                            {brideName} & {groomName} {language === 'en' ? 'Milan Report' : 'अनुकूलता रिपोर्ट'}
+                          <CardTitle className="text-purple-200 text-lg">
+                            {brideName} & {groomName} {language === 'en' ? 'Milan Report' : 'विवाह अनुकूलता मिलान रिपोर्ट'}
                           </CardTitle>
                           <CardDescription>
-                            {language === 'en' ? 'Vedic Ashtakoot compatibility details' : 'अष्टकूट ३६ गुण मिलान के आधार पर संपूर्ण फल विश्लेषण'}
+                            {language === 'en' ? 'Vedic Ashtakoot compatibility details' : 'अष्टकूट ३६ गुण मिलान एवं मांगलिक/दशा संधि विश्लेषण'}
                           </CardDescription>
                         </div>
 
                         {/* circular progress score */}
-                        <div className="flex items-center gap-3 bg-purple-950/30 border border-purple-900/30 p-3 rounded-xl">
+                        <div className="flex items-center gap-3 bg-purple-950/30 border border-purple-900/30 p-3 rounded-xl shrink-0">
                           <div className="relative w-16 h-16 flex items-center justify-center">
                             <svg className="w-full h-full transform -rotate-90">
                               <circle cx="32" cy="32" r="28" fill="transparent" stroke="#3b0764" strokeWidth="4" />
                               <circle cx="32" cy="32" r="28" fill="transparent" stroke="#a855f7" strokeWidth="4" 
                                 strokeDasharray={175} 
-                                strokeDashoffset={175 - (175 * milanResult.score) / 36}
+                                strokeDashoffset={175 - (175 * milanResult.gunaMilan.score) / 36}
                               />
                             </svg>
-                            <span className="absolute text-sm font-bold text-slate-100">{milanResult.score}/36</span>
+                            <span className="absolute text-sm font-bold text-slate-100">{milanResult.gunaMilan.score}/36</span>
                           </div>
                           <div>
                             <span className="text-xs text-muted-foreground block">{language === 'en' ? 'Match Percent' : 'अनुकूलता प्रतिशत'}</span>
-                            <span className="text-lg font-extrabold text-purple-400">{milanResult.compatibilityPercentage}%</span>
+                            <span className="text-lg font-extrabold text-purple-400">{milanResult.gunaMilan.compatibilityPercentage}%</span>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-6">
+                      
+                      {/* Detailed Kundali Comparison Grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Bride Column */}
+                        <div className="bg-pink-950/5 border border-pink-900/10 rounded-lg p-3 space-y-2">
+                          <span className="text-xs font-bold text-pink-400 block border-b border-pink-900/10 pb-1 uppercase tracking-wider">
+                            वधू: {brideName}
+                          </span>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">जन्म नक्षत्र (Pada)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.bride.nakshatra} ({milanResult.bride.pada})</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">चंद्र राशि (Sign)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.bride.rashi}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">राशि स्वामी (Lord)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.bride.rashiLord}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">जन्म लग्न (Lagna)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.bride.lagna}</span>
+                            </div>
+                          </div>
+                          <div className={`mt-2 text-center text-[10px] py-1 px-2 rounded font-bold uppercase ${
+                            milanResult.bride.isManglik ? 'bg-rose-950/40 border border-rose-900/30 text-rose-400' : 'bg-emerald-950/40 border border-emerald-900/30 text-emerald-400'
+                          }`}>
+                            {milanResult.bride.isManglik ? "मांगलिक कुंडली (Manglik)" : "गैर-मांगलिक (Non-Manglik)"}
+                          </div>
+                        </div>
+
+                        {/* Groom Column */}
+                        <div className="bg-blue-950/5 border border-blue-900/10 rounded-lg p-3 space-y-2">
+                          <span className="text-xs font-bold text-blue-400 block border-b border-blue-900/10 pb-1 uppercase tracking-wider">
+                            वर: {groomName}
+                          </span>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">जन्म नक्षत्र (Pada)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.groom.nakshatra} ({milanResult.groom.pada})</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">चंद्र राशि (Sign)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.groom.rashi}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">राशि स्वामी (Lord)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.groom.rashiLord}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">जन्म लग्न (Lagna)</span>
+                              <span className="font-semibold text-slate-200">{milanResult.groom.lagna}</span>
+                            </div>
+                          </div>
+                          <div className={`mt-2 text-center text-[10px] py-1 px-2 rounded font-bold uppercase ${
+                            milanResult.groom.isManglik ? 'bg-rose-950/40 border border-rose-900/30 text-rose-400' : 'bg-emerald-950/40 border border-emerald-900/30 text-emerald-400'
+                          }`}>
+                            {milanResult.groom.isManglik ? "मांगलिक कुंडली (Manglik)" : "गैर-मांगलिक (Non-Manglik)"}
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Prediction text */}
                       <div className="bg-purple-950/20 border border-purple-900/30 rounded-lg p-4">
                         <h4 className="font-semibold text-purple-300 text-sm mb-1.5 flex items-center">
                           <Sparkles className="mr-2 h-4 w-4 text-amber-500" />
                           {language === 'en' ? 'Marriage Prediction' : 'विवाह भविष्यवाणी निष्कर्ष'}
                         </h4>
-                        <p className="text-xs leading-relaxed text-slate-300 font-sans">{milanResult.prediction}</p>
+                        <p className="text-xs leading-relaxed text-slate-300 font-sans">{milanResult.gunaMilan.prediction}</p>
                       </div>
 
-                      {/* Doshas Check */}
+                      {/* Doshas & Checks */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-purple-950/10 p-3 rounded-lg border border-purple-900/10 flex items-center gap-2">
-                          {milanResult.nadiDosha ? <XCircle className="h-5 w-5 text-rose-500 shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
+                          {milanResult.gunaMilan.nadiDosha ? <XCircle className="h-5 w-5 text-rose-500 shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
                           <div>
                             <span className="text-xs font-bold text-slate-200 block">नाड़ी दोष (Nadi Dosha)</span>
-                            <span className="text-[10px] text-muted-foreground">{milanResult.nadiDosha ? "अशुभ दोष उपस्थित है" : "दोष मुक्त"}</span>
+                            <span className="text-[10px] text-muted-foreground">{milanResult.gunaMilan.nadiDosha ? "अशुभ दोष उपस्थित है" : "दोष मुक्त"}</span>
                           </div>
                         </div>
                         <div className="bg-purple-950/10 p-3 rounded-lg border border-purple-900/10 flex items-center gap-2">
-                          {milanResult.bhakootDosha ? <XCircle className="h-5 w-5 text-rose-500 shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
+                          {milanResult.gunaMilan.bhakootDosha ? <XCircle className="h-5 w-5 text-rose-500 shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
                           <div>
                             <span className="text-xs font-bold text-slate-200 block">भकूट दोष (Bhakoot Dosha)</span>
-                            <span className="text-[10px] text-muted-foreground">{milanResult.bhakootDosha ? "अशुभ दोष उपस्थित है" : "दोष मुक्त"}</span>
+                            <span className="text-[10px] text-muted-foreground">{milanResult.gunaMilan.bhakootDosha ? "अशुभ दोष उपस्थित है" : "दोष मुक्त"}</span>
                           </div>
                         </div>
-                        <div className="bg-purple-950/10 p-3 rounded-lg border border-purple-900/10 flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                        <div className={`p-3 rounded-lg border flex items-center gap-2 ${
+                          (milanResult.bride.isManglik !== milanResult.groom.isManglik)
+                            ? 'bg-amber-950/10 border-amber-900/20'
+                            : 'bg-purple-950/10 border-purple-900/10'
+                        }`}>
+                          {(milanResult.bride.isManglik !== milanResult.groom.isManglik) ? <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
                           <div>
-                            <span className="text-xs font-bold text-slate-200 block">मंगल दोष मिलान</span>
-                            <span className="text-[10px] text-muted-foreground">अनुकूल स्थिति</span>
+                            <span className="text-xs font-bold text-slate-200 block">मंगल दोष मिलान (Mangal)</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {milanResult.bride.isManglik !== milanResult.groom.isManglik ? "आंशिक दोष / शांति सुझाव" : "दोष रहित / संतुलित"}
+                            </span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Manglik Match Status Description */}
+                      <div className="bg-purple-950/10 p-3 rounded-lg border border-purple-900/10 text-xs">
+                        <span className="font-bold text-purple-300 block mb-1">मंगल दोष एवं गृह विश्लेषण</span>
+                        <p className="text-slate-300 leading-normal">{milanResult.manglikStatus}</p>
+                      </div>
+
+                      {/* Dasha Sandhi Check */}
+                      <div className="bg-purple-950/10 p-3 rounded-lg border border-purple-900/10 text-xs">
+                        <span className="font-bold text-purple-300 block mb-1">दशा संधि चक्र परीक्षण</span>
+                        <p className="text-slate-300 leading-normal">{milanResult.dashaSandhiStatus}</p>
                       </div>
 
                       {/* Ashtakoot Grid */}
@@ -283,50 +509,50 @@ const CompatibilityPage = () => {
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">वर्ण (Varna) - मानसिक विकास</td>
                                 <td className="p-2.5 text-slate-400">1</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.varnaScore}</td>
-                                <td className="p-2.5">{milanResult.varnaScore > 0 ? "शुभ" : "अशुभ"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.varnaScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.varnaScore > 0 ? "शुभ" : "अशुभ"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">वश्य (Vashya) - आपसी आकर्षण</td>
                                 <td className="p-2.5 text-slate-400">2</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.vashyaScore}</td>
-                                <td className="p-2.5">{milanResult.vashyaScore >= 1.5 ? "उत्तम" : milanResult.vashyaScore > 0 ? "मध्यम" : "शून्य"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.vashyaScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.vashyaScore >= 1.5 ? "उत्तम" : milanResult.gunaMilan.vashyaScore > 0 ? "मध्यम" : "शून्य"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">तारा (Tara) - स्वास्थ्य व आयु</td>
                                 <td className="p-2.5 text-slate-400">3</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.taraScore}</td>
-                                <td className="p-2.5">{milanResult.taraScore === 3 ? "अमृत" : milanResult.taraScore > 0 ? "मध्यम" : "अशुभ"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.taraScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.taraScore === 3 ? "अमृत" : milanResult.gunaMilan.taraScore > 0 ? "मध्यम" : "अशुभ"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">योनि (Yoni) - शारीरिक अनुकूलता</td>
                                 <td className="p-2.5 text-slate-400">4</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.yoniScore}</td>
-                                <td className="p-2.5">{milanResult.yoniScore === 4 ? "परम मित्र" : milanResult.yoniScore > 1 ? "सामान्य" : "शत्रु योनि"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.yoniScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.yoniScore === 4 ? "परम मित्र" : milanResult.gunaMilan.yoniScore > 1 ? "सामान्य" : "शत्रु योनि"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">ग्रह मैत्री (Graha Maitri) - वैचारिक मित्र</td>
                                 <td className="p-2.5 text-slate-400">5</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.maitriScore}</td>
-                                <td className="p-2.5">{milanResult.maitriScore >= 4 ? "परम मित्र" : milanResult.maitriScore >= 2 ? "तटस्थ" : "शत्रु"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.maitriScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.maitriScore >= 4 ? "परम मित्र" : milanResult.gunaMilan.maitriScore >= 2 ? "तटस्थ" : "शत्रु"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">गण (Gana) - स्वभाव व व्यवहार</td>
                                 <td className="p-2.5 text-slate-400">6</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.ganaScore}</td>
-                                <td className="p-2.5">{milanResult.ganaScore === 6 ? "अनुकूल" : milanResult.ganaScore > 0 ? "मध्यम" : "विपरीत स्वभाव"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.ganaScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.ganaScore === 6 ? "अनुकूल" : milanResult.gunaMilan.ganaScore > 0 ? "मध्यम" : "विपरीत स्वभाव"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">भकूट (Bhakoot) - समृद्धि व प्रेम</td>
                                 <td className="p-2.5 text-slate-400">7</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.bhakootScore}</td>
-                                <td className="p-2.5">{milanResult.bhakootDosha ? <span className="text-rose-400">भकूट महादोष</span> : "शुभ योग"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.bhakootScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.bhakootDosha ? <span className="text-rose-400">भकूट महादोष</span> : "शुभ योग"}</td>
                               </tr>
                               <tr className="hover:bg-purple-900/5">
                                 <td className="p-2.5 font-medium text-slate-300">नाड़ी (Nadi) - स्वास्थ्य व संतान</td>
                                 <td className="p-2.5 text-slate-400">8</td>
-                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.nadiScore}</td>
-                                <td className="p-2.5">{milanResult.nadiDosha ? <span className="text-rose-400">नाड़ी महादोष</span> : "उत्तम स्वास्थ्य"}</td>
+                                <td className="p-2.5 text-purple-300 font-bold">{milanResult.gunaMilan.nadiScore}</td>
+                                <td className="p-2.5">{milanResult.gunaMilan.nadiDosha ? <span className="text-rose-400">नाड़ी महादोष</span> : "उत्तम स्वास्थ्य"}</td>
                               </tr>
                             </tbody>
                           </table>

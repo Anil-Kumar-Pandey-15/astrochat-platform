@@ -1438,8 +1438,259 @@ export function generateAstroPredictions(planets: PlanetaryPosition[]): AstroPre
     lagnaPrediction: lagnaHindiMap[ascSign] || "आपका व्यक्तित्व प्रभावशाली है।",
     moonPrediction: moonHindiMap[moonSign] || "आपका मन शांत और कोमल है।",
     sunPrediction: sunHindiMap[sunSign] || "आपमें नेतृत्व की उत्तम क्षमता है।",
-    healthPrediction: healthMap[ascSign] || "स्वास्थ्य का ध्यान रखें और संतुलित आहार लें।",
-    wealthPrediction: wealthMap[ascSign] || "योजनाबद्ध निवेश से आर्थिक उन्नति होगी।",
     careerPrediction: careerMap[ascSign] || "अपनी रुचि के क्षेत्र में कठिन परिश्रम करें।"
+  };
+}
+
+export interface DetailedMatchingResult {
+  bride: {
+    name: string;
+    nakshatra: string;
+    pada: number;
+    rashi: string;
+    rashiLord: string;
+    lagna: string;
+    isManglik: boolean;
+  };
+  groom: {
+    name: string;
+    nakshatra: string;
+    pada: number;
+    rashi: string;
+    rashiLord: string;
+    lagna: string;
+    isManglik: boolean;
+  };
+  gunaMilan: GunaMilanResult;
+  manglikStatus: string;
+  dashaSandhiStatus: string;
+}
+
+export function calculateDetailedMatching(
+  bName: string, bDate: Date, bTime: string, bLat: number, bLng: number,
+  gName: string, gDate: Date, gTime: string, gLat: number, gLng: number
+): DetailedMatchingResult {
+  const rashiLords = ["Mars", "Venus", "Mercury", "Moon", "Sun", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Saturn", "Jupiter"];
+  const hindiRashiLords = ["मंगल", "शुक्र", "बुध", "चंद्रमा", "सूर्य", "बुध", "शुक्र", "मंगल", "गुरु", "शनि", "शनि", "गुरु"];
+
+  // 1. Calculate Bride positions
+  const bTimeMin = parseTimeToMinutes(bTime);
+  const bDateTime = new Date(bDate);
+  bDateTime.setMinutes(bDateTime.getMinutes() + bTimeMin - bDateTime.getTimezoneOffset());
+  
+  const bJd = 2440587.5 + bDateTime.getTime() / 86400000.0;
+  const bD = bJd - 2451545.0;
+  const bAyan = getAyanamsa(bD);
+  const bMoonTrop = getMoonLongitude(bD);
+  const bMoonLong = (bMoonTrop - bAyan + 360) % 360;
+
+  const bNakIndex = Math.floor(bMoonLong / 13.333333) % 27;
+  const bPada = Math.floor((bMoonLong % 13.333333) / 3.333333) + 1;
+  const bRashiIndex = Math.floor(bMoonLong / 30) % 12;
+
+  // Ascendant for bride
+  const bSunPosTrop = getGeocentricLongitude("Sun", bD);
+  const bSunPosLong = (bSunPosTrop - bAyan + 360) % 360;
+  const bSolarTimes = calculateSunriseSunset(bDate, bLat, bLng);
+  const bSunriseHour = parseTimeToMinutes(bSolarTimes.sunrise) / 60;
+  const bBirthHour = bTimeMin / 60;
+  const bHoursAfterSunrise = (bBirthHour - bSunriseHour + 24) % 24;
+  const bLagnaDeg = (bSunPosLong + bHoursAfterSunrise * 15) % 360;
+  const bLagnaSign = Math.floor(bLagnaDeg / 30) % 12;
+
+  // Mars position for bride to check Manglik Dosha
+  const bMarsTrop = getGeocentricLongitude("Mars", bD);
+  const bMarsLong = (bMarsTrop - bAyan + 360) % 360;
+  const bMarsSign = Math.floor(bMarsLong / 30) % 12;
+  const bMarsHouse = (bMarsSign - bLagnaSign + 12) % 12 + 1;
+  const bIsManglik = [1, 4, 7, 8, 12].includes(bMarsHouse);
+
+  // 2. Calculate Groom positions
+  const gTimeMin = parseTimeToMinutes(gTime);
+  const gDateTime = new Date(gDate);
+  gDateTime.setMinutes(gDateTime.getMinutes() + gTimeMin - gDateTime.getTimezoneOffset());
+  
+  const gJd = 2440587.5 + gDateTime.getTime() / 86400000.0;
+  const gD = gJd - 2451545.0;
+  const gAyan = getAyanamsa(gD);
+  const gMoonTrop = getMoonLongitude(gD);
+  const gMoonLong = (gMoonTrop - gAyan + 360) % 360;
+
+  const gNakIndex = Math.floor(gMoonLong / 13.333333) % 27;
+  const gPada = Math.floor((gMoonLong % 13.333333) / 3.333333) + 1;
+  const gRashiIndex = Math.floor(gMoonLong / 30) % 12;
+
+  // Ascendant for groom
+  const gSunPosTrop = getGeocentricLongitude("Sun", gD);
+  const gSunPosLong = (gSunPosTrop - gAyan + 360) % 360;
+  const gSolarTimes = calculateSunriseSunset(gDate, gLat, gLng);
+  const gSunriseHour = parseTimeToMinutes(gSolarTimes.sunrise) / 60;
+  const gBirthHour = gTimeMin / 60;
+  const gHoursAfterSunrise = (gBirthHour - gSunriseHour + 24) % 24;
+  const gLagnaDeg = (gSunPosLong + gHoursAfterSunrise * 15) % 360;
+  const gLagnaSign = Math.floor(gLagnaDeg / 30) % 12;
+
+  // Mars position for groom
+  const gMarsTrop = getGeocentricLongitude("Mars", gD);
+  const gMarsLong = (gMarsTrop - gAyan + 360) % 360;
+  const gMarsSign = Math.floor(gMarsLong / 30) % 12;
+  const gMarsHouse = (gMarsSign - gLagnaSign + 12) % 12 + 1;
+  const gIsManglik = [1, 4, 7, 8, 12].includes(gMarsHouse);
+
+  // 3. Ashtakoot matching using actual calculated indices
+  // Varna
+  const getVarnaCode = (rashi: number) => {
+    if ([3, 7, 11].includes(rashi)) return 4; // Brahmin
+    if ([0, 4, 8].includes(rashi)) return 3;  // Kshatriya
+    if ([1, 5, 9].includes(rashi)) return 2;  // Vaishya
+    return 1; // Shudra
+  };
+  const bVarna = getVarnaCode(bRashiIndex);
+  const gVarna = getVarnaCode(gRashiIndex);
+  const varnaScore = gVarna >= bVarna ? 1 : 0;
+
+  // Vashya
+  let vashyaScore = 0;
+  if (bRashiIndex === gRashiIndex) vashyaScore = 2;
+  else if (Math.abs(bRashiIndex - gRashiIndex) % 4 === 0) vashyaScore = 1.5;
+  else if (Math.abs(bRashiIndex - gRashiIndex) === 6) vashyaScore = 0.5;
+  else vashyaScore = 1;
+
+  // Tara
+  const diff1 = (bNakIndex - gNakIndex + 27) % 9;
+  const diff2 = (gNakIndex - bNakIndex + 27) % 9;
+  const badTarapanas = [1, 3, 5, 7];
+  let taraScore = 3;
+  if (badTarapanas.includes(diff1) && badTarapanas.includes(diff2)) taraScore = 0;
+  else if (badTarapanas.includes(diff1) || badTarapanas.includes(diff2)) taraScore = 1.5;
+
+  // Yoni
+  const yoniMap = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13];
+  const bYoni = yoniMap[bNakIndex];
+  const gYoni = yoniMap[gNakIndex];
+  let yoniScore = 0;
+  if (bYoni === gYoni) yoniScore = 4;
+  else if (Math.abs(bYoni - gYoni) === 7) yoniScore = 0; // Deadly enemies
+  else if ([1, 3, 5].includes(Math.abs(bYoni - gYoni))) yoniScore = 2;
+  else yoniScore = 1.5;
+
+  // Graha Maitri
+  const bLord = rashiLords[bRashiIndex];
+  const gLord = rashiLords[gRashiIndex];
+  let maitriScore = 0;
+  if (bLord === gLord) maitriScore = 5;
+  else if (
+    (bLord === "Sun" && gLord === "Moon") || (bLord === "Moon" && gLord === "Sun") ||
+    (bLord === "Jupiter" && (gLord === "Sun" || gLord === "Moon" || gLord === "Mars"))
+  ) {
+    maitriScore = 4;
+  } else if (
+    (bLord === "Saturn" && gLord === "Mercury") || (bLord === "Mercury" && gLord === "Saturn") ||
+    (bLord === "Venus" && gLord === "Saturn")
+  ) {
+    maitriScore = 3.5;
+  } else {
+    maitriScore = 1.5;
+  }
+
+  // Gana
+  const getGana = (nak: number) => {
+    const deva = [0, 4, 6, 7, 12, 14, 16, 21, 26];
+    const rakshasa = [2, 8, 9, 17, 18, 22, 23, 24, 25];
+    if (deva.includes(nak)) return "Deva";
+    if (rakshasa.includes(nak)) return "Rakshasa";
+    return "Manushya";
+  };
+  const bGana = getGana(bNakIndex);
+  const gGana = getGana(gNakIndex);
+  let ganaScore = 0;
+  if (bGana === gGana) ganaScore = 6;
+  else if ((bGana === "Deva" && gGana === "Manushya") || (bGana === "Manushya" && gGana === "Deva")) ganaScore = 5;
+  else if ((bGana === "Deva" && gGana === "Rakshasa") || (bGana === "Rakshasa" && gGana === "Deva")) ganaScore = 1;
+  else ganaScore = 0;
+
+  // Bhakoot
+  const posDiff = (gRashiIndex - bRashiIndex + 12) % 12 + 1;
+  const bhakootDosha = [2, 12, 6, 8].includes(posDiff);
+  const bhakootScore = bhakootDosha ? 0 : 7;
+
+  // Nadi
+  const getNadi = (nak: number) => {
+    const aadi = [0, 5, 6, 11, 12, 17, 18, 23, 24];
+    const madhya = [1, 4, 7, 10, 13, 16, 19, 22, 25];
+    if (aadi.includes(nak)) return "Aadi";
+    if (madhya.includes(nak)) return "Madhya";
+    return "Antya";
+  };
+  const bNadi = getNadi(bNakIndex);
+  const gNadi = getNadi(gNakIndex);
+  const nadiDosha = bNadi === gNadi;
+  const nadiScore = nadiDosha ? 0 : 8;
+
+  const score = varnaScore + vashyaScore + taraScore + yoniScore + maitriScore + ganaScore + bhakootScore + nadiScore;
+  const compatibilityPercentage = Math.round((score / 36) * 100);
+
+  let prediction = "";
+  if (score >= 25) {
+    prediction = "उत्तम मिलान (Excellent Match). दोनों के बीच मानसिक, वैचारिक और शारीरिक अनुकूलता बहुत मजबूत है। विवाह के लिए यह अत्यधिक अनुशंसित है।";
+  } else if (score >= 18) {
+    prediction = "मध्यम मिलान (Good Match). औसत अनुकूलता है। नाड़ी या भकूट जैसे दोषों के निवारण हेतु सामान्य पूजा या रत्न धारण की सलाह दी जाती है।";
+  } else {
+    prediction = "अशुभ मिलान (Challenging Match). मिलान स्कोर कम है। भविष्य में मतभेद, संतान सुख अथवा स्वास्थ्य संबंधी समस्याओं का सामना करना पड़ सकता है। ज्योतिषी परामर्श आवश्यक है।";
+  }
+
+  let manglikStatus = "";
+  if (bIsManglik && gIsManglik) {
+    manglikStatus = "दोनों मांगलिक हैं (Balanced Mangal). वर और वधू दोनों ही मांगलिक होने से दोष स्वतः निरस्त हो जाता है। विवाह अत्यंत उत्तम रहेगा।";
+  } else if (!bIsManglik && !gIsManglik) {
+    manglikStatus = "दोनों मांगलिक नहीं हैं (No Mangal Dosha). कुंडलियां दोषमुक्त हैं, वैवाहिक जीवन सुखमय रहेगा।";
+  } else if (bIsManglik) {
+    manglikStatus = "वधू मांगलिक है लेकिन वर नहीं (Unbalanced Mangal). केवल कन्या का मांगलिक होना दोषपूर्ण माना जाता है। विवाह से पूर्व मंगल शांति विधान अथवा घट विवाह की सलाह दी जाती है।";
+  } else {
+    manglikStatus = "वर मांगलिक है लेकिन वधू नहीं (Unbalanced Mangal). केवल वर का मांगलिक होना अनिष्टकारी हो सकता है। वधू के कल्याण हेतु शांति पूजन अपेक्षित है।";
+  }
+
+  const dashaSandhiStatus = Math.abs(bMoonLong - gMoonLong) < 25
+    ? "दशा संधि दोष उपस्थित है (Dasha Sandhi warning). दोनों की ग्रहों की महादशाएं लगभग एक ही अवधि में बदल रही हैं। इससे जीवन में संक्रमण कालीन उथल-पुथल हो सकती है।"
+    : "दशाएं अनुकूल हैं (Dasha compatibility is good). दोनों की महादशाओं के चक्रों में पर्याप्त अंतर है, विवाह उपरांत स्थिरता बनी रहेगी।";
+
+  return {
+    bride: {
+      name: bName,
+      nakshatra: HINDI_NAKSHATRAS[bNakIndex],
+      pada: bPada,
+      rashi: HINDI_ZODIAC_SIGNS[bRashiIndex],
+      rashiLord: hindiRashiLords[bRashiIndex],
+      lagna: HINDI_ZODIAC_SIGNS[bLagnaSign],
+      isManglik: bIsManglik
+    },
+    groom: {
+      name: gName,
+      nakshatra: HINDI_NAKSHATRAS[gNakIndex],
+      pada: gPada,
+      rashi: HINDI_ZODIAC_SIGNS[gRashiIndex],
+      rashiLord: hindiRashiLords[gRashiIndex],
+      lagna: HINDI_ZODIAC_SIGNS[gLagnaSign],
+      isManglik: gIsManglik
+    },
+    gunaMilan: {
+      score,
+      maxScore: 36,
+      varnaScore,
+      vashyaScore,
+      taraScore,
+      yoniScore,
+      maitriScore,
+      ganaScore,
+      bhakootScore,
+      nadiScore,
+      nadiDosha,
+      bhakootDosha,
+      manglikMatch: manglikStatus,
+      compatibilityPercentage,
+      prediction
+    },
+    manglikStatus,
+    dashaSandhiStatus
   };
 }
