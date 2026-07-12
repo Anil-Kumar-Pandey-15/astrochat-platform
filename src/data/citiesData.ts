@@ -88,6 +88,8 @@ export const INDIAN_CITIES: City[] = [
   { name: "Bhagalpur", state: "Bihar", lat: 25.2425, lng: 87.0145 },
   { name: "Muzaffarpur", state: "Bihar", lat: 26.1196, lng: 85.3910 },
   { name: "Darbhanga", state: "Bihar", lat: 26.1542, lng: 85.8918 },
+  { name: "Motihari", state: "Bihar", lat: 26.6509, lng: 84.9089 },
+  { name: "Raxaul", state: "Bihar", lat: 26.9774, lng: 84.8513 },
   // Madhya Pradesh
   { name: "Indore", state: "Madhya Pradesh", lat: 22.7196, lng: 75.8577 },
   { name: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lng: 77.4126 },
